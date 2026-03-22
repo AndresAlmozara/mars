@@ -1,0 +1,44 @@
+dataset:
+  path: data/raw/dataset.csv
+  file_type: csv
+  sep: ","
+  encoding: utf-8
+
+target:
+  column: target
+
+features:
+  numeric:
+    - feature_num_1
+    - feature_num_2
+  categorical:
+    - feature_cat_1
+    - feature_cat_2
+
+cleaning:
+  normalize_column_names: true
+  strip_string_columns: true
+  replace_empty_strings_with_nan: true
+  drop_duplicate_rows: true
+  drop_columns: []
+  row_filters: []
+
+split:
+  strategy: train_test
+  test_size: 0.2
+  random_state: 42
+  stratify: true
+
+preprocessing:
+  numeric:
+    imputer: median
+    scaler: standard
+  categorical:
+    imputer: most_frequent
+    fill_value: missing
+    encoder: onehot
+
+outputs:
+  save_cleaned_data: false
+  save_processed_data: true
+  processed_dir: data/processed
