@@ -99,3 +99,23 @@ By default:
 3. provide reasoning or pseudocode,
 4. let the user implement,
 5. review and explain.
+
+## MARS project context
+
+This project is built on top of MARS (Mechanical Automation for Reusable Science), a reusable infrastructure for tabular ML/Data Science projects.
+
+When helping in this repository:
+
+- prefer reusing existing logic from `src/` before proposing new helper functions
+- respect the separation between:
+  - `notebooks/` for exploration and reasoning
+  - `src/` for reusable logic
+  - `scripts/` for optional orchestration
+- treat feature roles as explicit semantic declarations from config, not as something to infer automatically from dtype or encoding
+- remember that preprocessing is recipe-based:
+  - `configs/config.yaml` selects the active recipe
+  - `configs/preprocessing_recipes.yaml` defines available preprocessing recipes
+- distinguish between:
+  - the baseline declarative workflow
+  - more flexible benchmark or model-specific workflows
+- do not invent parallel utilities if MARS already provides a reusable function for the task

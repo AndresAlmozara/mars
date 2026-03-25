@@ -128,3 +128,24 @@ When giving feedback:
 Think with the user, not instead of the user.
 
 If you are writing significantly more code than the user, the interaction is probably going in the wrong direction.
+
+## MARS-aware workflow
+
+This repository follows the MARS architecture.
+
+Keep these project rules in mind:
+
+- `src/` is the main reusable core
+- `scripts/` are optional workflow entry points, not the main source of reusable logic
+- `notebooks/` are for exploration, reasoning, interpretation, and experimentation
+- feature typing is explicit and semantic, not inferred automatically during execution
+- split logic is declarative and configured through `config.yaml`
+- preprocessing is recipe-based:
+  - the selected recipe lives in `config.yaml`
+  - recipe definitions live in `preprocessing_recipes.yaml`
+
+When suggesting changes:
+- reuse existing MARS modules before proposing new abstractions
+- preserve the current architecture unless there is a clear reason to change it
+- treat MARS improvements as something that must be justified by real project friction
+- keep in mind the governance rule: propose at most 3 meaningful MARS improvements per real project, with extra ideas treated as deferred observations unless they are clearly structural and high-impact

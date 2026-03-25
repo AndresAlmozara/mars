@@ -1,0 +1,40 @@
+recipes:
+  scaled_ohe_simple:
+    numeric:
+      imputer: median
+      scaler: standard
+    categorical:
+      imputer: most_frequent
+      fill_value: missing
+      encoder: onehot
+
+  robust_ohe:
+    numeric:
+      imputer: median
+      scaler: robust
+    categorical:
+      imputer: most_frequent
+      fill_value: missing
+      encoder: onehot
+
+  native_cat_boosted:
+    numeric:
+      imputer: median
+      scaler: none
+    categorical:
+      mode: native
+
+  numeric_scaled:
+    numeric:
+      imputer: median
+      scaler: standard
+    categorical:
+      mode: ignore
+
+  target_encoded_tree:
+    numeric:
+      imputer: median
+      scaler: none
+    categorical:
+      imputer: most_frequent
+      encoder: target

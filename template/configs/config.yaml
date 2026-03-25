@@ -7,6 +7,9 @@ dataset:
 target:
   column: target
 
+# Feature groups are declared semantically.
+# Do not rely only on raw dtype or existing encoding.
+# Review ambiguous columns during EDA before assigning them.
 features:
   numeric:
     - feature_num_1
@@ -23,6 +26,9 @@ cleaning:
   drop_columns: []
   row_filters: []
 
+# Supported split strategies:
+# - train_test
+# - train_valid_test
 split:
   strategy: train_test
   test_size: 0.2
@@ -30,13 +36,7 @@ split:
   stratify: true
 
 preprocessing:
-  numeric:
-    imputer: median
-    scaler: standard
-  categorical:
-    imputer: most_frequent
-    fill_value: missing
-    encoder: onehot
+  recipe: scaled_ohe_simple
 
 outputs:
   save_cleaned_data: false

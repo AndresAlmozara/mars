@@ -135,3 +135,20 @@ When reviewing notebook code, prioritize:
 Notebooks are for structured thinking, exploration, and communication.
 
 Protect readability, flow, and learning value.
+
+## MARS notebook context
+
+This project uses MARS, so notebooks should coexist cleanly with reusable project code.
+
+When working in notebooks:
+
+- keep exploration, interpretation, and experiment reasoning in the notebook
+- before moving logic out of the notebook, check whether MARS already provides a reusable module in `src/`
+- if the logic does not exist yet, decide carefully whether it should:
+  - remain notebook-local,
+  - become project-local reusable code,
+  - or become a justified MARS improvement
+- do not duplicate reusable MARS functionality inside notebook cells when an existing module already covers the task
+- respect the distinction between:
+  - declarative baseline workflows
+  - flexible benchmarking workflows

@@ -30,7 +30,7 @@ Code inside `src/` should be:
 
 Prefer stable, focused functions over exploratory one-off code.
 
-Do not move code into `src/` just because it works.  
+Do not move code into `src/` just because it works.
 Move it when it is stable, reusable, and belongs outside the notebook.
 
 ## Preferred workflow
@@ -150,3 +150,24 @@ Do not refactor just for style if the current code is already understandable.
 Code in `src/` should outlive the notebook that inspired it.
 
 Optimize for clarity, structure, and reuse without sacrificing learning.
+
+## MARS src context
+
+Code inside `src/` should align with the reusable architecture of MARS.
+
+Keep these rules in mind:
+
+- prefer extending existing MARS modules over creating parallel utilities
+- treat feature groups as semantic declarations from config, not as dtype-driven guesses
+- respect the declarative split system already implemented in MARS
+- respect the recipe-based preprocessing system:
+  - `config.yaml` selects the recipe
+  - `preprocessing_recipes.yaml` defines reusable preprocessing strategies
+- do not assume there is a single universal preprocessing path for all models
+- preserve modularity and responsibility boundaries across:
+  - data loading
+  - splitting
+  - typing
+  - cleaning
+  - preprocessing construction
+- if a proposed addition changes MARS itself, it should solve a real reusable friction, not just a one-off inconvenience

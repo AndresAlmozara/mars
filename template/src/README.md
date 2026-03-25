@@ -61,8 +61,10 @@ Handles dataset partitioning.
 **Responsibilities**
 - separate `X` and `y`
 - create reproducible dataset splits
+- support explicit split strategies
 - optionally apply stratification
 - keep split logic explicit and configurable
+- generate basic split metadata
 
 **Does not handle**
 - loading/saving
@@ -71,7 +73,7 @@ Handles dataset partitioning.
 - feature engineering
 
 **Typical flow**
-`df_clean -> X, y -> declared splits`
+`df_clean -> X, y -> declared splits + metadata`
 
 ---
 
@@ -112,10 +114,12 @@ Defines the logical role of columns.
 - read numeric and categorical feature groups
 - validate that declared columns exist
 - ensure target is not included in feature lists
-- preserve semantic feature roles beyond raw dtype alone
+- prevent duplicated declarations across feature groups
+- preserve semantic feature roles beyond raw dtype or existing encoding
 
 **Does not handle**
 - automatic feature discovery
+- implicit type inference during execution
 - cleaning
 - split
 - preprocessing execution
@@ -127,6 +131,8 @@ Defines the logical role of columns.
 Builds the final sklearn preprocessing object.
 
 **Responsibilities**
+- load the selected preprocessing recipe
+- resolve recipe definitions from `configs/preprocessing_recipes.yaml`
 - create imputers, scalers, and encoders
 - build numeric and categorical pipelines
 - assemble the final `ColumnTransformer`
@@ -139,7 +145,7 @@ Builds the final sklearn preprocessing object.
 - business or analytical decisions
 
 **Typical flow**
-`feature groups + preprocessing config -> ColumnTransformer`
+`feature groups + selected recipe -> ColumnTransformer`
 
 ---
 
@@ -156,10 +162,13 @@ Loads and validates the project YAML config.
 **Responsibilities**
 - load YAML into a Python dictionary
 - validate the minimum required structure
+- validate the declared split configuration
+- validate the selected preprocessing recipe name
 - provide a single config entry point for scripts and modules
 
 **Does not handle**
 - data loading
+- recipe execution
 - preprocessing
 - modeling
 
@@ -191,6 +200,6 @@ These modules can be imported independently in notebooks or scripts.
 
 Baseline conceptual flow:
 
-`config -> raw data -> cleaning -> feature roles -> split -> preprocessor`
+`config -> raw data -> cleaning -> feature roles -> split -> selected recipe -> preprocessor`
 
 High-level orchestration lives outside `src/`, usually in `scripts/`.
