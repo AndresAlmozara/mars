@@ -31,7 +31,7 @@ Examples:
 
 ## Project philosophy
 
-This project follows a structure that separates analytical reasoning from reusable execution logic:
+This project is organized to separate analytical reasoning from reusable execution logic:
 
 - `notebooks/` for exploration, EDA, reasoning, interpretation, and experimentation
 - `configs/` for declared project decisions
@@ -85,7 +85,7 @@ Reusable core code for:
 
 ## Typical workflow
 
-A common project flow is:
+A common project flow may look like this:
 
 `EDA -> feature decisions -> config -> preprocessing -> modeling -> evaluation`
 
@@ -116,3 +116,5 @@ It should be updated as the project becomes more specific, especially:
 - modeling approach
 - evaluation strategy
 - results and conclusions
+
+Optional workflow-specific overlays may also be added depending on the user's development setup.

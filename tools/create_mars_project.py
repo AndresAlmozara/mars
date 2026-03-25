@@ -99,14 +99,104 @@ def create_default_notebooks(project_dir: Path) -> None:
     Create the default project notebooks if they are missing.
     """
     notebooks_dir = project_dir / "notebooks"
-
     create_notebook_if_missing(notebooks_dir / "01_eda.ipynb")
     create_notebook_if_missing(notebooks_dir / "02_modeling.ipynb")
 
 
-def create_project(name: str, destination: Path) -> Path:
+def resolve_ai_overlays(
+    with_ai: bool,
+    with_copilot: bool,
+    with_cline: bool,
+) -> set[str]:
     """
-    Create a new project from the MARS template.
+    Resolve which AI overlays should be applied.
+
+    Rules:
+    - --with-ai copies both Copilot and Cline overlays.
+    - --with-copilot copies only Copilot.
+    - --with-cline copies only Cline.
+    - No AI flags means no AI overlays.
+    """
+    if with_ai:
+        return {"copilot", "cline"}
+
+    selected: set[str] = set()
+
+    if with_copilot:
+        selected.add("copilot")
+
+    if with_cline:
+        selected.add("cline")
+
+    return selected
+
+
+def copy_overlay_contents(overlay_dir: Path, project_dir: Path) -> None:
+    """
+    Copy the contents of an overlay into the root of the target project.
+
+    The overlay is expected to already contain the final relative paths
+    (for example `.github/...` or `.clinerules/...`).
+    """
+    if not overlay_dir.exists():
+        raise FileNotFoundError(f"Overlay directory not found: {overlay_dir}")
+
+    if not overlay_dir.is_dir():
+        raise NotADirectoryError(f"Overlay path is not a directory: {overlay_dir}")
+
+    for source_path in overlay_dir.rglob("*"):
+        relative_path = source_path.relative_to(overlay_dir)
+        destination_path = project_dir / relative_path
+
+        if source_path.is_dir():
+            destination_path.mkdir(parents=True, exist_ok=True)
+            continue
+
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if destination_path.exists():
+            raise FileExistsError(
+                f"Overlay copy would overwrite an existing file: {destination_path}"
+            )
+
+        shutil.copy2(source_path, destination_path)
+
+
+def apply_ai_overlays(
+    project_dir: Path,
+    mars_root: Path,
+    selected_overlays: set[str],
+    replacements: dict[str, str],
+) -> None:
+    """
+    Apply selected AI overlays to the project and replace placeholders inside them.
+    """
+    if not selected_overlays:
+        return
+
+    overlays_root = mars_root / "overlays" / "ai"
+
+    overlay_map = {
+        "copilot": overlays_root / "copilot",
+        "cline": overlays_root / "cline",
+    }
+
+    for overlay_name in sorted(selected_overlays):
+        overlay_dir = overlay_map[overlay_name]
+        copy_overlay_contents(overlay_dir, project_dir)
+
+    apply_placeholder_replacements(project_dir, replacements)
+
+
+def create_project(
+    name: str,
+    destination: Path,
+    with_ai: bool = False,
+    with_copilot: bool = False,
+    with_cline: bool = False,
+) -> Path:
+    """
+    Create a new project from the MARS template and optional overlays.
     """
     script_path = Path(__file__).resolve()
     mars_root = script_path.parent.parent
@@ -142,6 +232,19 @@ def create_project(name: str, destination: Path) -> Path:
     apply_placeholder_replacements(project_dir, replacements)
     create_default_notebooks(project_dir)
 
+    selected_ai_overlays = resolve_ai_overlays(
+        with_ai=with_ai,
+        with_copilot=with_copilot,
+        with_cline=with_cline,
+    )
+
+    apply_ai_overlays(
+        project_dir=project_dir,
+        mars_root=mars_root,
+        selected_overlays=selected_ai_overlays,
+        replacements=replacements,
+    )
+
     return project_dir
 
 
@@ -159,15 +262,35 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Parent directory where the new project folder will be created.",
     )
+    parser.add_argument(
+        "--with-ai",
+        action="store_true",
+        help="Include both Copilot and Cline AI overlays.",
+    )
+    parser.add_argument(
+        "--with-copilot",
+        action="store_true",
+        help="Include only the Copilot overlay.",
+    )
+    parser.add_argument(
+        "--with-cline",
+        action="store_true",
+        help="Include only the Cline overlay.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+
     project_dir = create_project(
         name=args.name,
         destination=Path(args.destination),
+        with_ai=args.with_ai,
+        with_copilot=args.with_copilot,
+        with_cline=args.with_cline,
     )
+
     print(f"Project created successfully at: {project_dir}")
 
 
