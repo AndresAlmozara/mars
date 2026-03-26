@@ -10,7 +10,38 @@ from src.preprocessing.cleaning import run_basic_cleaning
 from src.preprocessing.pipeline_builder import build_preprocessor
 from src.preprocessing.typing import get_feature_groups
 from src.utils.config import load_and_validate_config
-from src.utils.paths import get_config_path, get_processed_data_path
+from src.utils.paths import get_config_path
+
+
+def resolve_project_root(config_path: str | Path) -> Path:
+    """
+    Resolve the project root from the config path.
+
+    Assumes the config file lives under:
+        <project_root>/configs/config.yaml
+    """
+    return Path(config_path).resolve().parent.parent
+
+
+def resolve_config_relative_path(
+    path_value: str | Path,
+    config_path: str | Path,
+) -> Path:
+    """
+    Resolve a path declared in config.
+
+    Rules
+    -----
+    - If the path is already absolute, return it resolved.
+    - If relative, resolve it against the project root inferred from config_path.
+    """
+    path = Path(path_value)
+
+    if path.is_absolute():
+        return path.resolve()
+
+    project_root = resolve_project_root(config_path)
+    return (project_root / path).resolve()
 
 
 def to_dataframe(
@@ -20,34 +51,17 @@ def to_dataframe(
     """
     Convert transformed sklearn output into a pandas DataFrame.
 
-    Parameters
-    ----------
-    transformed_data : Any
-        Output of sklearn transform / fit_transform.
-    feature_names : list[str] | None, default=None
-        Column names for the resulting DataFrame.
-
-    Returns
-    -------
-    pd.DataFrame
-        Transformed data as DataFrame.
+    Handles dense arrays, sparse matrices, and similar sklearn outputs.
     """
+    if hasattr(transformed_data, "toarray"):
+        transformed_data = transformed_data.toarray()
+
     return pd.DataFrame(transformed_data, columns=feature_names)
 
 
 def get_split_config(config: dict) -> dict:
     """
     Read split configuration directly from the validated config.
-
-    Parameters
-    ----------
-    config : dict
-        Project configuration dictionary.
-
-    Returns
-    -------
-    dict
-        Split configuration dictionary.
     """
     return config["split"]
 
@@ -55,16 +69,6 @@ def get_split_config(config: dict) -> dict:
 def get_outputs_config(config: dict) -> dict:
     """
     Read output configuration with sensible defaults.
-
-    Parameters
-    ----------
-    config : dict
-        Project configuration dictionary.
-
-    Returns
-    -------
-    dict
-        Output parameters.
     """
     outputs_cfg = config.get("outputs", {})
 
@@ -83,43 +87,26 @@ def get_outputs_config(config: dict) -> dict:
     }
 
 
-def get_output_path(filename: str, outputs_cfg: dict) -> Path:
+def get_output_path(
+    filename: str,
+    outputs_cfg: dict,
+    config_path: str | Path,
+) -> Path:
     """
-    Resolve an output path for a file to be stored in the processed output directory.
+    Resolve an output path for a file stored in the processed output directory.
 
-    For now, this keeps compatibility with the current path helpers while allowing
-    a future evolution toward fully configurable processed directories.
-
-    Parameters
-    ----------
-    filename : str
-        Output filename.
-    outputs_cfg : dict
-        Output configuration dictionary.
-
-    Returns
-    -------
-    Path
-        Resolved output path.
+    Relative output directories are resolved against the project root inferred
+    from config_path, not against the current working directory.
     """
     processed_dir = outputs_cfg.get("processed_dir", "data/processed")
-
-    if processed_dir == "data/processed":
-        return Path(get_processed_data_path(filename))
-
-    return Path(processed_dir) / filename
+    resolved_processed_dir = resolve_config_relative_path(processed_dir, config_path)
+    resolved_processed_dir.mkdir(parents=True, exist_ok=True)
+    return resolved_processed_dir / filename
 
 
 def save_split_metadata(metadata: dict, output_path: str | Path) -> None:
     """
     Save split metadata as JSON.
-
-    Parameters
-    ----------
-    metadata : dict
-        Split metadata dictionary.
-    output_path : str | Path
-        Destination JSON path.
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,25 +120,10 @@ def save_processed_split_outputs(
     feature_names: list[str],
     target_col: str,
     outputs_cfg: dict,
+    config_path: str | Path,
 ) -> list[str]:
     """
     Save processed X splits and raw y splits using a consistent naming scheme.
-
-    Parameters
-    ----------
-    splits : dict
-        Structured split dictionary returned by make_dataset_splits(...).
-    feature_names : list[str]
-        Feature names of the transformed matrix.
-    target_col : str
-        Name of the target column.
-    outputs_cfg : dict
-        Output configuration dictionary.
-
-    Returns
-    -------
-    list[str]
-        List of saved filenames for logging.
     """
     saved_filenames: list[str] = []
 
@@ -169,7 +141,7 @@ def save_processed_split_outputs(
 
         save_dataframe(
             X_processed_df,
-            get_output_path(x_filename, outputs_cfg),
+            get_output_path(x_filename, outputs_cfg, config_path),
             file_type="csv",
             index=False,
         )
@@ -177,13 +149,27 @@ def save_processed_split_outputs(
 
         save_dataframe(
             y_split.to_frame(name=target_col),
-            get_output_path(y_filename, outputs_cfg),
+            get_output_path(y_filename, outputs_cfg, config_path),
             file_type="csv",
             index=False,
         )
         saved_filenames.append(y_filename)
 
     return saved_filenames
+
+
+def _get_feature_names_or_fallback(preprocessor: Any, n_features: int) -> list[str]:
+    """
+    Return feature names from the fitted preprocessor when available.
+    Fallback to generic names otherwise.
+    """
+    if hasattr(preprocessor, "get_feature_names_out"):
+        try:
+            return preprocessor.get_feature_names_out().tolist()
+        except (AttributeError, ValueError, NotImplementedError):
+            pass
+
+    return [f"feature_{i}" for i in range(n_features)]
 
 
 def run_preprocessing(config_path: str | Path | None = None) -> None:
@@ -198,22 +184,23 @@ def run_preprocessing(config_path: str | Path | None = None) -> None:
     6. Build sklearn preprocessor from the selected recipe
     7. Fit on train and transform all relevant splits
     8. Save final processed outputs and split metadata
-
-    Parameters
-    ----------
-    config_path : str | Path | None, default=None
-        Path to YAML config file. If None, uses configs/config.yaml.
     """
     if config_path is None:
         config_path = get_config_path()
 
+    config_path = Path(config_path).resolve()
     config = load_and_validate_config(config_path)
 
     dataset_cfg = config["dataset"]
     outputs_cfg = get_outputs_config(config)
 
+    dataset_path = resolve_config_relative_path(
+        dataset_cfg["path"],
+        config_path,
+    )
+
     df_raw = load_dataset(
-        path=dataset_cfg["path"],
+        path=str(dataset_path),
         file_type=dataset_cfg["file_type"],
         sep=dataset_cfg.get("sep", ","),
         encoding=dataset_cfg.get("encoding", "utf-8"),
@@ -224,7 +211,11 @@ def run_preprocessing(config_path: str | Path | None = None) -> None:
     if outputs_cfg["save_cleaned_data"]:
         save_dataframe(
             df_clean,
-            get_output_path(outputs_cfg["cleaned_data_filename"], outputs_cfg),
+            get_output_path(
+                outputs_cfg["cleaned_data_filename"],
+                outputs_cfg,
+                config_path,
+            ),
             file_type="csv",
             index=False,
         )
@@ -255,14 +246,13 @@ def run_preprocessing(config_path: str | Path | None = None) -> None:
     X_train = splits["train"]["X"]
     y_train = splits["train"]["y"]
 
-    # Fit on train only. Passing y_train keeps compatibility with recipes
-    # that may use target-aware encoding, such as TargetEncoder.
     preprocessor.fit(X_train, y_train)
 
     for split_data in splits.values():
         split_data["X_processed"] = preprocessor.transform(split_data["X"])
 
-    feature_names = preprocessor.get_feature_names_out().tolist()
+    n_features = splits["train"]["X_processed"].shape[1]
+    feature_names = _get_feature_names_or_fallback(preprocessor, n_features)
 
     saved_filenames: list[str] = []
 
@@ -273,12 +263,14 @@ def run_preprocessing(config_path: str | Path | None = None) -> None:
                 feature_names=feature_names,
                 target_col=target_col,
                 outputs_cfg=outputs_cfg,
+                config_path=config_path,
             )
         )
 
         metadata_output_path = get_output_path(
             outputs_cfg["split_metadata_filename"],
             outputs_cfg,
+            config_path,
         )
         save_split_metadata(split_metadata, metadata_output_path)
         saved_filenames.append(outputs_cfg["split_metadata_filename"])
@@ -289,11 +281,12 @@ def run_preprocessing(config_path: str | Path | None = None) -> None:
         for filename in saved_filenames:
             print(f"Saved: {filename}")
     else:
-        print("No processed files were saved because 'outputs.save_processed_data' is false.")
+        print(
+            "No processed files were saved because "
+            "'outputs.save_processed_data' is false."
+        )
 
 
 if __name__ == "__main__":
-    # Allow optional custom config path from command line:
-    # python scripts/run_baseline_preprocessing.py configs/config.yaml
     custom_config_path = sys.argv[1] if len(sys.argv) > 1 else None
     run_preprocessing(custom_config_path)
