@@ -47,11 +47,8 @@ mars/
 │       ├── copilot/
 │       │   └── .github/
 │       │       └── copilot-instructions.md
-│       └── cline/
-│           └── .clinerules/
-│               ├── core-rules.md
-│               ├── notebooks-rules.md
-│               └── src-rules.md
+│       └── opencode/
+│           └── AGENTS.md
 └── tools/
     └── create_mars_project.py
 ```
@@ -79,7 +76,7 @@ This keeps the default template portable and editor-agnostic while still allowin
 For example, the current AI overlay can add support files for:
 
 - GitHub Copilot
-- Cline
+- OpenCode
 
 ## What MARS does not try to automate
 
@@ -108,15 +105,20 @@ python tools/create_mars_project.py --name "My New Project" --destination "PATH/
 python tools/create_mars_project.py --name "My New Project" --destination "PATH/TO/PORTFOLIO" --with-copilot
 ```
 
-### Base project + Cline overlay
+### Base project + OpenCode overlay
 ```bash
-python tools/create_mars_project.py --name "My New Project" --destination "PATH/TO/PORTFOLIO" --with-cline
+python tools/create_mars_project.py --name "My New Project" --destination "PATH/TO/PORTFOLIO" --with-opencode
 ```
 
 ### Base project + both AI overlays
 ```bash
 python tools/create_mars_project.py --name "My New Project" --destination "PATH/TO/PORTFOLIO" --with-ai
 ```
+
+`--with-ai` includes the current recommended optional AI workspace setup:
+
+- GitHub Copilot instructions
+- OpenCode `AGENTS.md` guidance
 
 The bootstrap script creates a new project folder from the MARS template, applies the selected overlays if requested, and replaces the relevant placeholders automatically.
 

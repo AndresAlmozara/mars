@@ -71,7 +71,9 @@ def copy_template_to_project(template_dir: Path, project_dir: Path) -> None:
     shutil.copytree(template_dir, project_dir)
 
 
-def apply_placeholder_replacements(project_dir: Path, replacements: dict[str, str]) -> None:
+def apply_placeholder_replacements(
+    project_dir: Path, replacements: dict[str, str]
+) -> None:
     """
     Walk through copied files and replace placeholders in text files.
     """
@@ -106,27 +108,27 @@ def create_default_notebooks(project_dir: Path) -> None:
 def resolve_ai_overlays(
     with_ai: bool,
     with_copilot: bool,
-    with_cline: bool,
+    with_opencode: bool,
 ) -> set[str]:
     """
     Resolve which AI overlays should be applied.
 
     Rules:
-    - --with-ai copies both Copilot and Cline overlays.
+    - --with-ai copies both Copilot and OpenCode overlays.
     - --with-copilot copies only Copilot.
-    - --with-cline copies only Cline.
+    - --with-opencode copies only OpenCode.
     - No AI flags means no AI overlays.
     """
     if with_ai:
-        return {"copilot", "cline"}
+        return {"copilot", "opencode"}
 
     selected: set[str] = set()
 
     if with_copilot:
         selected.add("copilot")
 
-    if with_cline:
-        selected.add("cline")
+    if with_opencode:
+        selected.add("opencode")
 
     return selected
 
@@ -136,7 +138,7 @@ def copy_overlay_contents(overlay_dir: Path, project_dir: Path) -> None:
     Copy the contents of an overlay into the root of the target project.
 
     The overlay is expected to already contain the final relative paths
-    (for example `.github/...` or `.clinerules/...`).
+    (for example `.github/...` or `AGENTS.md`).
     """
     if not overlay_dir.exists():
         raise FileNotFoundError(f"Overlay directory not found: {overlay_dir}")
@@ -178,7 +180,7 @@ def apply_ai_overlays(
 
     overlay_map = {
         "copilot": overlays_root / "copilot",
-        "cline": overlays_root / "cline",
+        "opencode": overlays_root / "opencode",
     }
 
     for overlay_name in sorted(selected_overlays):
@@ -193,7 +195,7 @@ def create_project(
     destination: Path,
     with_ai: bool = False,
     with_copilot: bool = False,
-    with_cline: bool = False,
+    with_opencode: bool = False,
 ) -> Path:
     """
     Create a new project from the MARS template and optional overlays.
@@ -235,7 +237,7 @@ def create_project(
     selected_ai_overlays = resolve_ai_overlays(
         with_ai=with_ai,
         with_copilot=with_copilot,
-        with_cline=with_cline,
+        with_opencode=with_opencode,
     )
 
     apply_ai_overlays(
@@ -265,7 +267,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--with-ai",
         action="store_true",
-        help="Include both Copilot and Cline AI overlays.",
+        help="Include both Copilot and OpenCode AI overlays.",
     )
     parser.add_argument(
         "--with-copilot",
@@ -273,9 +275,9 @@ def parse_args() -> argparse.Namespace:
         help="Include only the Copilot overlay.",
     )
     parser.add_argument(
-        "--with-cline",
+        "--with-opencode",
         action="store_true",
-        help="Include only the Cline overlay.",
+        help="Include only the OpenCode overlay.",
     )
     return parser.parse_args()
 
@@ -288,7 +290,7 @@ def main() -> None:
         destination=Path(args.destination),
         with_ai=args.with_ai,
         with_copilot=args.with_copilot,
-        with_cline=args.with_cline,
+        with_opencode=args.with_opencode,
     )
 
     print(f"Project created successfully at: {project_dir}")
