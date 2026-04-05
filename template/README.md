@@ -41,6 +41,8 @@ This project is organized to separate analytical reasoning from reusable executi
 
 The goal is to keep the project clear, reproducible, and easy to evolve.
 
+This project was initialized from the MARS template, so its structure is designed to support reusable workflows without replacing analytical judgment.
+
 ## Main components
 
 ### `configs/`
@@ -74,7 +76,7 @@ These scripts are optional entry points.
 They are not the reusable core of the project.
 
 ### `src/`
-Reusable core code for:
+Reusable core code for project infrastructure and workflow support, such as:
 - data loading and saving
 - config handling
 - path management
@@ -82,6 +84,8 @@ Reusable core code for:
 - semantic feature typing
 - split logic
 - preprocessing object construction
+
+Depending on the project, `src/` may be used directly from notebooks, scripts, or more specialized workflows.
 
 ## Typical workflow
 
@@ -93,6 +97,7 @@ Depending on the project, preprocessing may be handled:
 - through a baseline script in `scripts/`
 - directly in notebooks
 - inside model-specific sklearn pipelines
+- through reusable utilities in `src/`
 
 ## Getting started
 
@@ -103,7 +108,7 @@ Typical setup steps:
 3. start with the EDA notebook
 4. define feature roles and preprocessing decisions
 5. move to modeling and evaluation
-6. use scripts only when they fit the workflow
+6. use scripts and reusable `src/` utilities when they fit the workflow
 
 ## Notes
 
@@ -118,3 +123,5 @@ It should be updated as the project becomes more specific, especially:
 - results and conclusions
 
 Optional workflow-specific overlays may also be added depending on the user's development setup.
+
+If an AI or agentic overlay was included during project creation, additional workspace guidance and support files may also be present.
